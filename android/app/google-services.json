@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "265371327357",
+    "project_id": "medical-pharmacy-4efe4",
+    "storage_bucket": "medical-pharmacy-4efe4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265371327357:android:e69599f1f58eea534fca14",
+        "android_client_info": {
+          "package_name": "com.example.medical_pharmacy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEkcmzHCkKOIs3ersmuOsp4gWonsg173M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265371327357:android:d40f5e047b910bd04fca14",
+        "android_client_info": {
+          "package_name": "com.seunome.medicalpharmacy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEkcmzHCkKOIs3ersmuOsp4gWonsg173M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
