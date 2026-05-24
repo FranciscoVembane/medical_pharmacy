@@ -6,7 +6,7 @@ import '../providers/medicamentos_providers.dart';
 import '../providers/beneficiarios_providers.dart';
 import '../providers/tarefas_providers.dart';
 import 'login_page.dart';
-import 'medicamentos_pages.dart';
+import 'medicamentos_page.dart';
 import 'beneficiarios_page.dart';
 import 'tarefas_page.dart';
 
@@ -38,17 +38,23 @@ class _HomePageState extends State<HomePage> {
     try {
       User? user = _auth.currentUser;
       if (user != null) {
+        print('UID do utilizador: ${user.uid}');
         DocumentSnapshot doc =
-            await _firestore.collection('users').doc(user.uid).get();
+        await _firestore.collection('users').doc(user.uid).get();
+        print('Documento existe: ${doc.exists}');
         if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          print('Dados: $data');
           setState(() {
-            userName = doc.get('name') ?? '';
-            userTipo = doc.get('tipo') ?? 'doador';
+            userName = data['name'] ?? '';
+            userTipo = data['tipo'] ?? 'doador';
+            print('Tipo carregado: $userTipo');
             _isLoading = false;
           });
         }
       }
     } catch (e) {
+      print('Erro: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -57,6 +63,29 @@ class _HomePageState extends State<HomePage> {
     await _auth.signOut();
     Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (_) => const LoginPage()));
+  }
+
+  // Cores por perfil
+  Color get _perfilCor {
+    switch (userTipo) {
+      case 'admin':
+        return const Color(0xFFE74C3C);
+      case 'operador':
+        return const Color(0xFF3498DB);
+      default:
+        return const Color(0xFF2ECC71);
+    }
+  }
+
+  String get _perfilLabel {
+    switch (userTipo) {
+      case 'admin':
+        return 'Administrador';
+      case 'operador':
+        return 'Operador';
+      default:
+        return 'Doador';
+    }
   }
 
   @override
@@ -73,15 +102,30 @@ class _HomePageState extends State<HomePage> {
                   const Text('Medical Pharmacy',
                       style: TextStyle(fontSize: 16, color: Colors.white)),
                   Text('Olá, $userName',
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.white70)),
+                      style:
+                          const TextStyle(fontSize: 12, color: Colors.white70)),
                 ],
               ),
         actions: [
+          // Badge do perfil
+          if (!_isLoading)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _perfilCor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(_perfilLabel,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600)),
+            ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
-          )
+          ),
         ],
       ),
       body: _isLoading
@@ -91,79 +135,114 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Estatísticas
-                  Consumer3<MedicamentosProvider, BeneficiariosProvider,
-                      TarefasProvider>(
-                    builder: (_, meds, benef, tarefas, __) => GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 1.5,
-                      children: [
-                        _statCard('Medicamentos',
-                            meds.medicamentos.length.toString(),
-                            Icons.medication, const Color(0xFF2ECC71)),
-                        _statCard('Beneficiários',
-                            benef.beneficiarios.length.toString(),
-                            Icons.people, const Color(0xFF3498DB)),
-                        _statCard('Tarefas Activas',
-                            tarefas.tarefasPendentes.length.toString(),
-                            Icons.task, const Color(0xFFF39C12)),
-                        _statCard('Concluídas',
-                            tarefas.tarefasConcluidas.length.toString(),
-                            Icons.check_circle, const Color(0xFF9B59B6)),
-                      ],
+                  // Estatísticas — só admin e operador
+                  if (userTipo == 'admin' || userTipo == 'operador')
+                    Consumer3<MedicamentosProvider, BeneficiariosProvider,
+                        TarefasProvider>(
+                      builder: (_, meds, benef, tarefas, __) => GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.5,
+                        children: [
+                          _statCard(
+                              'Medicamentos',
+                              meds.medicamentos.length.toString(),
+                              Icons.medication,
+                              const Color(0xFF2ECC71)),
+                          _statCard(
+                              'Beneficiários',
+                              benef.beneficiarios.length.toString(),
+                              Icons.people,
+                              const Color(0xFF3498DB)),
+                          _statCard(
+                              'Tarefas Activas',
+                              tarefas.tarefasPendentes.length.toString(),
+                              Icons.task,
+                              const Color(0xFFF39C12)),
+                          _statCard(
+                              'Concluídas',
+                              tarefas.tarefasConcluidas.length.toString(),
+                              Icons.check_circle,
+                              const Color(0xFF9B59B6)),
+                        ],
+                      ),
                     ),
-                  ),
+
                   const SizedBox(height: 24),
                   const Text('Módulos',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
+
+                  // Medicamentos — todos os perfis
                   _menuItem(
                     icon: Icons.medication,
                     label: 'Medicamentos',
-                    sub: 'Gerir doações e stock',
+                    sub: userTipo == 'doador'
+                        ? 'Registar doações'
+                        : 'Gerir medicamentos',
                     color: const Color(0xFF2ECC71),
-                    onTap: () => Navigator.push(context,
+                    onTap: () => Navigator.push(
+                        context,
                         MaterialPageRoute(
-                            builder: (_) => const MedicamentosPage())),
+                            builder: (_) =>
+                                MedicamentosPage(userTipo: userTipo))),
                   ),
-                  _menuItem(
-                    icon: Icons.people,
-                    label: 'Beneficiários',
-                    sub: 'Gerir beneficiários',
-                    color: const Color(0xFF3498DB),
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const BeneficiariosPage())),
-                  ),
-                  _menuItem(
-                    icon: Icons.task,
-                    label: 'Tarefas',
-                    sub: 'Atribuir e acompanhar tarefas',
-                    color: const Color(0xFFF39C12),
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(
-                            builder: (_) => const TarefasPage())),
-                  ),
+
+                  // Beneficiários — só admin e operador
+                  if (userTipo == 'admin' || userTipo == 'operador')
+                    _menuItem(
+                      icon: Icons.people,
+                      label: 'Beneficiários',
+                      sub: 'Gerir beneficiários',
+                      color: const Color(0xFF3498DB),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const BeneficiariosPage())),
+                    ),
+
+                  // Tarefas — só admin e operador
+                  if (userTipo == 'admin' || userTipo == 'operador')
+                    _menuItem(
+                      icon: Icons.task,
+                      label: 'Tarefas',
+                      sub: 'Atribuir e acompanhar tarefas',
+                      color: const Color(0xFFF39C12),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const TarefasPage())),
+                    ),
+
+                  // Gestão de utilizadores — só admin
+                  if (userTipo == 'admin')
+                    _menuItem(
+                      icon: Icons.manage_accounts,
+                      label: 'Gerir Utilizadores',
+                      sub: 'Administrar contas e perfis',
+                      color: const Color(0xFFE74C3C),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const UtilizadoresPage())),
+                    ),
                 ],
               ),
             ),
     );
   }
 
-  Widget _statCard(
-      String label, String valor, IconData icon, Color color) {
+  Widget _statCard(String label, String valor, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(
-              color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -175,9 +254,7 @@ class _HomePageState extends State<HomePage> {
           Text(valor,
               style: TextStyle(
                   fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          Text(label,
-              style:
-                  const TextStyle(fontSize: 12, color: Colors.grey)),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
@@ -197,17 +274,156 @@ class _HomePageState extends State<HomePage> {
         leading: Container(
           width: 44,
           height: 44,
-          decoration:
-              // ignore: deprecated_member_use
-              BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.15), shape: BoxShape.circle),
           child: Icon(icon, color: color),
         ),
-        title: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(sub,
-            style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle:
+            Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,
+      ),
+    );
+  }
+}
+
+// ── Página de gestão de utilizadores (só admin) ──────────────────
+
+class UtilizadoresPage extends StatelessWidget {
+  const UtilizadoresPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFE74C3C),
+        title: const Text('Gerir Utilizadores',
+            style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('Nenhum utilizador encontrado.'));
+          }
+          final users = snapshot.data!.docs;
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: users.length,
+            itemBuilder: (_, i) {
+              final data = users[i].data() as Map<String, dynamic>;
+              final tipo = data['tipo'] ?? 'doador';
+
+              Color badgeColor;
+              switch (tipo) {
+                case 'admin':
+                  badgeColor = const Color(0xFFE74C3C);
+                  break;
+                case 'operador':
+                  badgeColor = const Color(0xFF3498DB);
+                  break;
+                default:
+                  badgeColor = const Color(0xFF2ECC71);
+              }
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: badgeColor.withOpacity(0.15),
+                    child: Icon(Icons.person, color: badgeColor),
+                  ),
+                  title: Text(data['name'] ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(data['email'] ?? ''),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Dropdown para mudar tipo
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: DropdownButton<String>(
+                          value: tipo,
+                          underline: const SizedBox(),
+                          isDense: true,
+                          style: TextStyle(
+                              color: badgeColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'admin', child: Text('Admin')),
+                            DropdownMenuItem(
+                                value: 'operador', child: Text('Operador')),
+                            DropdownMenuItem(
+                                value: 'doador', child: Text('Doador')),
+                          ],
+                          onChanged: (novoTipo) async {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(users[i].id)
+                                .update({'tipo': novoTipo});
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Perfil actualizado!')));
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Botão de eliminar
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () async {
+                          // Confirmação antes de eliminar
+                          final confirmar = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Eliminar utilizador'),
+                              content: Text(
+                                  'Tens a certeza que queres eliminar "${data['name']}"?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Eliminar',
+                                      style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmar == true) {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(users[i].id)
+                                .delete();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Utilizador eliminado!')));
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

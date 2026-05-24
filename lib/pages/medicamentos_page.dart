@@ -6,7 +6,8 @@ import '../providers/medicamentos_providers.dart';
 import '../models/doacao_model.dart';
 
 class MedicamentosPage extends StatelessWidget {
-  const MedicamentosPage({super.key});
+  final String userTipo;
+  const MedicamentosPage({super.key, required this.userTipo});
 
   @override
   Widget build(BuildContext context) {
