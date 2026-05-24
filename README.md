@@ -33,6 +33,25 @@ O Medical Pharmacy é um MVP desenvolvido no âmbito do Trabalho Prático 2, que
 - Provider (gestão de estado)
 
 ##  Estrutura do Projeto
+lib/
+├── models/
+│   ├── doacao_model.dart
+│   ├── beneficiario_model.dart
+│   └── tarefa_model.dart
+├── pages/
+│   ├── login_page.dart
+│   ├── signup_page.dart
+│   ├── home_page.dart
+│   ├── medicamentos_page.dart
+│   ├── beneficiarios_page.dart
+│   └── tarefas_page.dart
+├── providers/
+│   ├── medicamentos_providers.dart
+│   ├── beneficiarios_providers.dart
+│   └── tarefas_providers.dart
+├── services/
+│   └── firestore_service.dart
+└── main.dart
 
 ##  Como Correr
 
