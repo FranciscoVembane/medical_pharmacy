@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../providers/medicamentos_providers.dart';
 import '../providers/beneficiarios_providers.dart';
 import '../providers/tarefas_providers.dart';
@@ -24,14 +25,24 @@ class _HomePageState extends State<HomePage> {
   String userName = '';
   String userTipo = '';
   bool _isLoading = true;
+  bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    _verificarConectividade();
     context.read<MedicamentosProvider>().iniciar();
     context.read<BeneficiariosProvider>().iniciar();
     context.read<TarefasProvider>().iniciar();
+  }
+
+  void _verificarConectividade() {
+    Connectivity().onConnectivityChanged.listen((result) {
+      setState(() {
+        _isOffline = result.contains(ConnectivityResult.none);
+      });
+    });
   }
 
   Future<void> _fetchUserData() async {
@@ -65,7 +76,6 @@ class _HomePageState extends State<HomePage> {
         context, MaterialPageRoute(builder: (_) => const LoginPage()));
   }
 
-  // Cores por perfil
   Color get _perfilCor {
     switch (userTipo) {
       case 'admin':
@@ -97,21 +107,21 @@ class _HomePageState extends State<HomePage> {
         title: _isLoading
             ? const Text('Medical Pharmacy')
             : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Medical Pharmacy',
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                  Text('Olá, $userName',
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.white70)),
-                ],
-              ),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Medical Pharmacy',
+                style: TextStyle(fontSize: 16, color: Colors.white)),
+            Text('Olá, $userName',
+                style: const TextStyle(
+                    fontSize: 12, color: Colors.white70)),
+          ],
+        ),
         actions: [
-          // Badge do perfil
           if (!_isLoading)
             Container(
               margin: const EdgeInsets.symmetric(vertical: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: _perfilCor,
                 borderRadius: BorderRadius.circular(20),
@@ -128,56 +138,80 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: Column(
+        children: [
+          // Banner offline
+          if (_isOffline)
+            Container(
+              width: double.infinity,
+              color: const Color(0xFFFFF8E1),
+              padding: const EdgeInsets.symmetric(
+                  vertical: 6, horizontal: 16),
+              child: const Row(
+                children: [
+                  Icon(Icons.wifi_off,
+                      size: 14, color: Color(0xFFF39C12)),
+                  SizedBox(width: 6),
+                  Text(
+                    'Sem ligação — a usar dados em cache',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFF39C12),
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          // Resto do body
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Estatísticas — só admin e operador
                   if (userTipo == 'admin' || userTipo == 'operador')
-                    Consumer3<MedicamentosProvider, BeneficiariosProvider,
-                        TarefasProvider>(
-                      builder: (_, meds, benef, tarefas, __) => GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.5,
-                        children: [
-                          _statCard(
-                              'Medicamentos',
-                              meds.medicamentos.length.toString(),
-                              Icons.medication,
-                              const Color(0xFF2ECC71)),
-                          _statCard(
-                              'Beneficiários',
-                              benef.beneficiarios.length.toString(),
-                              Icons.people,
-                              const Color(0xFF3498DB)),
-                          _statCard(
-                              'Tarefas Activas',
-                              tarefas.tarefasPendentes.length.toString(),
-                              Icons.task,
-                              const Color(0xFFF39C12)),
-                          _statCard(
-                              'Concluídas',
-                              tarefas.tarefasConcluidas.length.toString(),
-                              Icons.check_circle,
-                              const Color(0xFF9B59B6)),
-                        ],
-                      ),
+                    Consumer3<MedicamentosProvider,
+                        BeneficiariosProvider, TarefasProvider>(
+                      builder: (_, meds, benef, tarefas, __) =>
+                          GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 1.5,
+                            children: [
+                              _statCard(
+                                  'Medicamentos',
+                                  meds.medicamentos.length.toString(),
+                                  Icons.medication,
+                                  const Color(0xFF2ECC71)),
+                              _statCard(
+                                  'Beneficiários',
+                                  benef.beneficiarios.length.toString(),
+                                  Icons.people,
+                                  const Color(0xFF3498DB)),
+                              _statCard(
+                                  'Tarefas Activas',
+                                  tarefas.tarefasPendentes.length.toString(),
+                                  Icons.task,
+                                  const Color(0xFFF39C12)),
+                              _statCard(
+                                  'Concluídas',
+                                  tarefas.tarefasConcluidas.length.toString(),
+                                  Icons.check_circle,
+                                  const Color(0xFF9B59B6)),
+                            ],
+                          ),
                     ),
-
                   const SizedBox(height: 24),
                   const Text('Módulos',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-
-                  // Medicamentos — todos os perfis
                   _menuItem(
                     icon: Icons.medication,
                     label: 'Medicamentos',
@@ -188,11 +222,9 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (_) =>
-                                MedicamentosPage(userTipo: userTipo))),
+                            builder: (_) => MedicamentosPage(
+                                userTipo: userTipo))),
                   ),
-
-                  // Beneficiários — só admin e operador
                   if (userTipo == 'admin' || userTipo == 'operador')
                     _menuItem(
                       icon: Icons.people,
@@ -202,10 +234,9 @@ class _HomePageState extends State<HomePage> {
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const BeneficiariosPage())),
+                              builder: (_) =>
+                              const BeneficiariosPage())),
                     ),
-
-                  // Tarefas — só admin e operador
                   if (userTipo == 'admin' || userTipo == 'operador')
                     _menuItem(
                       icon: Icons.task,
@@ -217,8 +248,6 @@ class _HomePageState extends State<HomePage> {
                           MaterialPageRoute(
                               builder: (_) => const TarefasPage())),
                     ),
-
-                  // Gestão de utilizadores — só admin
                   if (userTipo == 'admin')
                     _menuItem(
                       icon: Icons.manage_accounts,
@@ -228,21 +257,29 @@ class _HomePageState extends State<HomePage> {
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const UtilizadoresPage())),
+                              builder: (_) =>
+                              const UtilizadoresPage())),
                     ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _statCard(String label, String valor, IconData icon, Color color) {
+  Widget _statCard(
+      String label, String valor, IconData icon, Color color) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+          BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: Offset(0, 2))
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -253,8 +290,12 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 8),
           Text(valor,
               style: TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: color)),
+          Text(label,
+              style:
+              const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
@@ -269,19 +310,24 @@ class _HomePageState extends State<HomePage> {
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape:
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-              color: color.withOpacity(0.15), shape: BoxShape.circle),
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle),
           child: Icon(icon, color: color),
         ),
-        title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle:
-            Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+        title: Text(label,
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(sub,
+            style:
+            const TextStyle(fontSize: 12, color: Colors.grey)),
+        trailing:
+        const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,
       ),
     );
@@ -303,13 +349,15 @@ class UtilizadoresPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        stream:
+        FirebaseFirestore.instance.collection('users').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('Nenhum utilizador encontrado.'));
+            return const Center(
+                child: Text('Nenhum utilizador encontrado.'));
           }
           final users = snapshot.data!.docs;
           return ListView.builder(
@@ -341,12 +389,12 @@ class UtilizadoresPage extends StatelessWidget {
                     child: Icon(Icons.person, color: badgeColor),
                   ),
                   title: Text(data['name'] ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600)),
                   subtitle: Text(data['email'] ?? ''),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Dropdown para mudar tipo
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
@@ -366,7 +414,8 @@ class UtilizadoresPage extends StatelessWidget {
                             DropdownMenuItem(
                                 value: 'admin', child: Text('Admin')),
                             DropdownMenuItem(
-                                value: 'operador', child: Text('Operador')),
+                                value: 'operador',
+                                child: Text('Operador')),
                             DropdownMenuItem(
                                 value: 'doador', child: Text('Doador')),
                           ],
@@ -377,31 +426,35 @@ class UtilizadoresPage extends StatelessWidget {
                                 .update({'tipo': novoTipo});
                             ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Perfil actualizado!')));
+                                    content:
+                                    Text('Perfil actualizado!')));
                           },
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Botão de eliminar
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.red),
                         onPressed: () async {
-                          // Confirmação antes de eliminar
                           final confirmar = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text('Eliminar utilizador'),
+                              title:
+                              const Text('Eliminar utilizador'),
                               content: Text(
                                   'Tens a certeza que queres eliminar "${data['name']}"?'),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
+                                  onPressed: () =>
+                                      Navigator.pop(ctx, false),
                                   child: const Text('Cancelar'),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
+                                  onPressed: () =>
+                                      Navigator.pop(ctx, true),
                                   child: const Text('Eliminar',
-                                      style: TextStyle(color: Colors.red)),
+                                      style: TextStyle(
+                                          color: Colors.red)),
                                 ),
                               ],
                             ),
@@ -413,7 +466,8 @@ class UtilizadoresPage extends StatelessWidget {
                                 .delete();
                             ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                    content: Text('Utilizador eliminado!')));
+                                    content: Text(
+                                        'Utilizador eliminado!')));
                           }
                         },
                       ),
