@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -261,38 +262,222 @@ class _MedicamentoCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: Color(0xFFE8F8F0),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.medication,
-              color: Color(0xFF2ECC71)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE8F8F0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.medication,
+                      color: Color(0xFF2ECC71)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(med.nomeMedicamento,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text('${med.categoria} · Qtd: ${med.quantidade}',
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.grey)),
+                      Text(
+                          'Validade: ${DateFormat('dd/MM/yyyy').format(med.validade)}',
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(badgeLabel,
+                      style: TextStyle(
+                          color: badgeColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+            // Botões admin
+            if (context.read<MedicamentosProvider>().userTipo == 'admin')
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 16, color: Color(0xFF3498DB)),
+                    label: const Text('Editar',
+                        style: TextStyle(
+                            color: Color(0xFF3498DB), fontSize: 12)),
+                    onPressed: () => _mostrarEdicao(context),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete_outline,
+                        size: 16, color: Colors.red),
+                    label: const Text('Eliminar',
+                        style:
+                        TextStyle(color: Colors.red, fontSize: 12)),
+                    onPressed: () => _confirmarEliminacao(context),
+                  ),
+                ],
+              ),
+          ],
         ),
-        title: Text(med.nomeMedicamento,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-            '${med.categoria} · Qtd: ${med.quantidade}\nValidade: ${DateFormat('dd/MM/yyyy').format(med.validade)}'),
-        trailing: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: badgeColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(badgeLabel,
-              style: TextStyle(
-                  color: badgeColor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
-        ),
-        isThreeLine: true,
       ),
     );
+  }
+
+  void _mostrarEdicao(BuildContext context) {
+    final nomeCtrl =
+    TextEditingController(text: med.nomeMedicamento);
+    final qtdCtrl =
+    TextEditingController(text: med.quantidade.toString());
+    String categoria = med.categoria;
+    DateTime? validade = med.validade;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              left: 20, right: 20, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Editar Medicamento',
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nomeCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nome do medicamento',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: qtdCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Quantidade',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: categoria,
+                decoration: InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                items: MedicamentosProvider.categorias
+                    .where((c) => c != 'Todos')
+                    .map((c) =>
+                    DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setState(() => categoria = v!),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.calendar_today),
+                label: Text(DateFormat('dd/MM/yyyy').format(validade!)),
+                onPressed: () async {
+                  final d = await showDatePicker(
+                    context: ctx,
+                    initialDate: validade!,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2030),
+                  );
+                  if (d != null) setState(() => validade = d);
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2ECC71)),
+                onPressed: () async {
+                  if (nomeCtrl.text.trim().isEmpty ||
+                      qtdCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                            Text('Preencha todos os campos.')));
+                    return;
+                  }
+                  await FirebaseFirestore.instance
+                      .collection('doacoes')
+                      .doc(med.id)
+                      .update({
+                    'nome_medicamento': nomeCtrl.text.trim(),
+                    'quantidade':
+                    int.tryParse(qtdCtrl.text.trim()) ?? med.quantidade,
+                    'categoria': categoria,
+                    'validade': Timestamp.fromDate(validade!),
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Medicamento actualizado!')));
+                },
+                child: const Text('Guardar',
+                    style: TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmarEliminacao(BuildContext context) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar medicamento'),
+        content: Text(
+            'Tens a certeza que queres eliminar "${med.nomeMedicamento}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar',
+                style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true) {
+      await context.read<MedicamentosProvider>().eliminar(med.id!);
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Medicamento eliminado!')));
+    }
   }
 }

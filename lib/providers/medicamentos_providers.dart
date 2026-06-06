@@ -7,6 +7,7 @@ class MedicamentosProvider extends ChangeNotifier {
 
   List<DoacaoModel> _medicamentos = [];
   String _filtro = '';
+  String userTipo = '';
   String _categoriaFiltro = 'Todos';
 
   List<DoacaoModel> get medicamentos {

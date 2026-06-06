@@ -7,6 +7,7 @@ class BeneficiariosProvider extends ChangeNotifier {
 
   List<BeneficiarioModel> _beneficiarios = [];
   String _filtro = '';
+  String userTipo = '';
 
   List<BeneficiarioModel> get beneficiarios {
     if (_filtro.isEmpty) return _beneficiarios;

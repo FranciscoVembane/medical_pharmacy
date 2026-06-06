@@ -32,15 +32,27 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _fetchUserData();
     _verificarConectividade();
+    context.read<MedicamentosProvider>().userTipo = userTipo;
     context.read<MedicamentosProvider>().iniciar();
+    context.read<BeneficiariosProvider>().userTipo = userTipo;
     context.read<BeneficiariosProvider>().iniciar();
     context.read<TarefasProvider>().iniciar();
   }
 
   void _verificarConectividade() {
     Connectivity().onConnectivityChanged.listen((result) {
+      var doc;
+      final data = doc.data() as Map<String, dynamic>;
+      final nome = data['name'] ?? '';
+      final tipo = data['tipo'] ?? 'doador';
+
+      context.read<MedicamentosProvider>().userTipo = tipo;
+      context.read<BeneficiariosProvider>().userTipo = tipo;
+
       setState(() {
-        _isOffline = result.contains(ConnectivityResult.none);
+        userName = nome;
+        userTipo = tipo;
+        _isLoading = false;
       });
     });
   }
@@ -49,17 +61,18 @@ class _HomePageState extends State<HomePage> {
     try {
       User? user = _auth.currentUser;
       if (user != null) {
-        print('UID do utilizador: ${user.uid}');
-        DocumentSnapshot doc =
-        await _firestore.collection('users').doc(user.uid).get();
-        print('Documento existe: ${doc.exists}');
+        final doc = await _firestore.collection('users').doc(user.uid).get();
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
-          print('Dados: $data');
+          final nome = data['name'] ?? '';
+          final tipo = data['tipo'] ?? 'doador';
+
+          context.read<MedicamentosProvider>().userTipo = tipo;
+          context.read<BeneficiariosProvider>().userTipo = tipo;
+
           setState(() {
-            userName = data['name'] ?? '';
-            userTipo = data['tipo'] ?? 'doador';
-            print('Tipo carregado: $userTipo');
+            userName = nome;
+            userTipo = tipo;
             _isLoading = false;
           });
         }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/beneficiarios_providers.dart';
@@ -43,8 +44,10 @@ class BeneficiariosPage extends StatelessWidget {
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   itemCount: lista.length,
-                  itemBuilder: (_, i) =>
-                      _BeneficiarioCard(beneficiario: lista[i]),
+                  itemBuilder: (_, i) => _BeneficiarioCard(
+                    beneficiario: lista[i],
+                    userTipo: context.read<BeneficiariosProvider>().userTipo,
+                  ),
                 );
               },
             ),
@@ -217,43 +220,242 @@ class BeneficiariosPage extends StatelessWidget {
 
 class _BeneficiarioCard extends StatelessWidget {
   final BeneficiarioModel beneficiario;
-  const _BeneficiarioCard({required this.beneficiario});
+  final String userTipo;
+  const _BeneficiarioCard(
+      {required this.beneficiario, required this.userTipo});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: const BoxDecoration(
-            color: Color(0xFFE6F1FB),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.person, color: Color(0xFF3498DB)),
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE6F1FB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.person,
+                      color: Color(0xFF3498DB)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(beneficiario.nome,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15)),
+                      Text(
+                          '${beneficiario.idade} anos · ${beneficiario.contacto}',
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.grey)),
+                      Text(beneficiario.condicaoMedica,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F1FB),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text('Activo',
+                      style: TextStyle(
+                          color: Color(0xFF3498DB),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+            // Botões admin e operador
+            if (userTipo == 'admin' || userTipo == 'operador')
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(Icons.edit_outlined,
+                        size: 16, color: Color(0xFF3498DB)),
+                    label: const Text('Editar',
+                        style: TextStyle(
+                            color: Color(0xFF3498DB), fontSize: 12)),
+                    onPressed: () => _mostrarEdicao(context),
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.delete_outline,
+                        size: 16, color: Colors.red),
+                    label: const Text('Eliminar',
+                        style:
+                        TextStyle(color: Colors.red, fontSize: 12)),
+                    onPressed: () => _confirmarEliminacao(context),
+                  ),
+                ],
+              ),
+          ],
         ),
-        title: Text(beneficiario.nome,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-            '${beneficiario.idade} anos · ${beneficiario.contacto}\n${beneficiario.condicaoMedica}'),
-        trailing: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE6F1FB),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text('Activo',
-              style: TextStyle(
-                  color: Color(0xFF3498DB),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
-        ),
-        isThreeLine: true,
       ),
     );
+  }
+
+  void _mostrarEdicao(BuildContext context) {
+    final nomeCtrl =
+    TextEditingController(text: beneficiario.nome);
+    final idadeCtrl =
+    TextEditingController(text: beneficiario.idade.toString());
+    final contactoCtrl =
+    TextEditingController(text: beneficiario.contacto);
+    final enderecoCtrl =
+    TextEditingController(text: beneficiario.endereco);
+    final condicaoCtrl =
+    TextEditingController(text: beneficiario.condicaoMedica);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius:
+          BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Editar Beneficiário',
+                  style: TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nomeCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nome completo',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: idadeCtrl,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Idade',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contactoCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Contacto',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: enderecoCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Endereço',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: condicaoCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Condição médica',
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3498DB)),
+                onPressed: () async {
+                  if (nomeCtrl.text.trim().isEmpty ||
+                      condicaoCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Preencha os campos obrigatórios.')));
+                    return;
+                  }
+                  await FirebaseFirestore.instance
+                      .collection('beneficiarios')
+                      .doc(beneficiario.id)
+                      .update({
+                    'nome': nomeCtrl.text.trim(),
+                    'idade':
+                    int.tryParse(idadeCtrl.text.trim()) ??
+                        beneficiario.idade,
+                    'contacto': contactoCtrl.text.trim(),
+                    'endereco': enderecoCtrl.text.trim(),
+                    'condicao_medica': condicaoCtrl.text.trim(),
+                  });
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Beneficiário actualizado!')));
+                },
+                child: const Text('Guardar',
+                    style: TextStyle(color: Colors.white)),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmarEliminacao(BuildContext context) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar beneficiário'),
+        content: Text(
+            'Tens a certeza que queres eliminar "${beneficiario.nome}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar',
+                style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar == true) {
+      await context
+          .read<BeneficiariosProvider>()
+          .eliminar(beneficiario.id!);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Beneficiário eliminado!')));
+    }
   }
 }
