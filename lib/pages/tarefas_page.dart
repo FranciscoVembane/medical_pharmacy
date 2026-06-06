@@ -142,31 +142,69 @@ class TarefasPage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF39C12)),
                   onPressed: () async {
-                    if (descCtrl.text.isEmpty ||
-                        operadorCtrl.text.isEmpty ||
-                        dataPrevista == null ||
-                        medicamentoNome == null ||
-                        beneficiarioNome == null) {
+                    // Validações
+                    if (descCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content:
-                                  Text('Preencha todos os campos.')));
+                              content: Text('Por favor insira a descrição da tarefa.')));
                       return;
                     }
+
+                    if (descCtrl.text.trim().length < 5) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('A descrição deve ter pelo menos 5 caracteres.')));
+                      return;
+                    }
+
+                    if (medicamentoNome == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Por favor seleccione um medicamento.')));
+                      return;
+                    }
+
+                    if (beneficiarioNome == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Por favor seleccione um beneficiário.')));
+                      return;
+                    }
+
+                    if (operadorCtrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Por favor insira o nome do operador.')));
+                      return;
+                    }
+
+                    if (dataPrevista == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Por favor seleccione a data prevista.')));
+                      return;
+                    }
+
+                    if (dataPrevista!.isBefore(DateTime.now())) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('A data prevista não pode ser no passado.')));
+                      return;
+                    }
+
                     await context.read<TarefasProvider>().criar(
-                          TarefaModel(
-                            descricao: descCtrl.text.trim(),
-                            medicamentoNome: medicamentoNome!,
-                            beneficiarioNome: beneficiarioNome!,
-                            operadorNome: operadorCtrl.text.trim(),
-                            operadorId: '',
-                            dataPrevista: dataPrevista!,
-                          ),
-                        );
+                      TarefaModel(
+                        descricao: descCtrl.text.trim(),
+                        medicamentoNome: medicamentoNome!,
+                        beneficiarioNome: beneficiarioNome!,
+                        operadorNome: operadorCtrl.text.trim(),
+                        operadorId: '',
+                        dataPrevista: dataPrevista!,
+                      ),
+                    );
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Tarefa criada!')));
+                        const SnackBar(content: Text('Tarefa criada!')));
                   },
                   child: const Text('Guardar',
                       style: TextStyle(color: Colors.white)),

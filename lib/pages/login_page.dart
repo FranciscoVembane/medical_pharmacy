@@ -18,10 +18,29 @@ class _LoginPageState extends State<LoginPage> {
   bool _senhaVisivel = false;
 
   Future<void> _login() async {
-    if (_emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    // Validações
+    if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Preencha email e senha.')));
+          const SnackBar(content: Text('Por favor insira o email.')));
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Insira um email válido.')));
+      return;
+    }
+
+    if (_passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor insira a senha.')));
+      return;
+    }
+
+    if (_passwordController.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('A senha deve ter pelo menos 6 caracteres.')));
       return;
     }
 
@@ -51,16 +70,13 @@ class _LoginPageState extends State<LoginPage> {
           message = 'Email ou senha incorrectos.';
           break;
         case 'too-many-requests':
-          message = 'Muitas tentativas. Tente mais tarde.';
+          message = 'Demasiadas tentativas. Tente mais tarde.';
           break;
         default:
           message = 'Erro: ${e.message}';
       }
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erro: $e')));
     } finally {
       setState(() => _isLoading = false);
     }

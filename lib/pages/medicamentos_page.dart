@@ -168,27 +168,64 @@ class MedicamentosPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2ECC71)),
                 onPressed: () async {
-                  if (nomeCtrl.text.isEmpty ||
-                      qtdCtrl.text.isEmpty ||
-                      validade == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Preencha todos os campos.')));
+                  // Validações
+                  if (nomeCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Por favor insira o nome do medicamento.')));
                     return;
                   }
+
+                  if (nomeCtrl.text.trim().length < 3) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('O nome deve ter pelo menos 3 caracteres.')));
+                    return;
+                  }
+
+                  if (qtdCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Por favor insira a quantidade.')));
+                    return;
+                  }
+
+                  final quantidade = int.tryParse(qtdCtrl.text.trim());
+                  if (quantidade == null || quantidade <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('A quantidade deve ser um número maior que zero.')));
+                    return;
+                  }
+
+                  if (validade == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Por favor seleccione a data de validade.')));
+                    return;
+                  }
+
+                  if (validade!.isBefore(DateTime.now())) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('A data de validade não pode ser no passado.')));
+                    return;
+                  }
+
                   final user = FirebaseAuth.instance.currentUser;
                   await context.read<MedicamentosProvider>().adicionar(
-                        DoacaoModel(
-                          nomeMedicamento: nomeCtrl.text.trim(),
-                          quantidade: int.parse(qtdCtrl.text.trim()),
-                          categoria: categoria,
-                          validade: validade!,
-                          doadorId: user?.uid ?? '',
-                          doadorNome: user?.email ?? '',
-                        ),
-                      );
+                    DoacaoModel(
+                      nomeMedicamento: nomeCtrl.text.trim(),
+                      quantidade: quantidade,
+                      categoria: categoria,
+                      validade: validade!,
+                      doadorId: user?.uid ?? '',
+                      doadorNome: user?.email ?? '',
+                    ),
+                  );
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Medicamento registado!')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Medicamento registado!')));
                 },
                 child: const Text('Guardar',
                     style: TextStyle(color: Colors.white)),

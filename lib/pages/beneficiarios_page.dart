@@ -135,26 +135,73 @@ class BeneficiariosPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3498DB)),
                 onPressed: () async {
-                  if (nomeCtrl.text.isEmpty ||
-                      condicaoCtrl.text.isEmpty) {
+                  // Validações
+                  if (nomeCtrl.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Preencha os campos obrigatórios.')));
+                            content: Text('Por favor insira o nome do beneficiário.')));
                     return;
                   }
+
+                  if (nomeCtrl.text.trim().length < 3) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('O nome deve ter pelo menos 3 caracteres.')));
+                    return;
+                  }
+
+                  if (idadeCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Por favor insira a idade.')));
+                    return;
+                  }
+
+                  final idade = int.tryParse(idadeCtrl.text.trim());
+                  if (idade == null || idade <= 0 || idade > 120) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Insira uma idade válida (1-120).')));
+                    return;
+                  }
+
+                  if (contactoCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Por favor insira o contacto.')));
+                    return;
+                  }
+
+                  if (contactoCtrl.text.trim().length < 9) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('O contacto deve ter pelo menos 9 dígitos.')));
+                    return;
+                  }
+
+                  if (enderecoCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Por favor insira o endereço.')));
+                    return;
+                  }
+
+                  if (condicaoCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Por favor insira a condição médica.')));
+                    return;
+                  }
+
                   await context
                       .read<BeneficiariosProvider>()
                       .adicionar(BeneficiarioModel(
-                        nome: nomeCtrl.text.trim(),
-                        idade: int.tryParse(idadeCtrl.text) ?? 0,
-                        contacto: contactoCtrl.text.trim(),
-                        endereco: enderecoCtrl.text.trim(),
-                        condicaoMedica: condicaoCtrl.text.trim(),
-                      ));
+                    nome: nomeCtrl.text.trim(),
+                    idade: idade,
+                    contacto: contactoCtrl.text.trim(),
+                    endereco: enderecoCtrl.text.trim(),
+                    condicaoMedica: condicaoCtrl.text.trim(),
+                  ));
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Beneficiário cadastrado!')));
+                      const SnackBar(content: Text('Beneficiário cadastrado!')));
                 },
                 child: const Text('Guardar',
                     style: TextStyle(color: Colors.white)),

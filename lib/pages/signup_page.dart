@@ -21,11 +21,46 @@ class _SignupPageState extends State<SignupPage> {
   bool _isLoading = false;
 
   Future<void> _signup() async {
+    // Validações
+    if (_nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor insira o nome.')));
+      return;
+    }
+
+    if (_nameController.text.trim().length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('O nome deve ter pelo menos 3 caracteres.')));
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (_emailController.text.trim().isEmpty ||
+        !emailRegex.hasMatch(_emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Insira um email válido.')));
+      return;
+    }
+
+    if (_passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Por favor insira a senha.')));
+      return;
+    }
+
+    if (_passwordController.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('A senha deve ter pelo menos 6 caracteres.')));
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
+      await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
@@ -45,12 +80,18 @@ class _SignupPageState extends State<SignupPage> {
       );
     } on FirebaseAuthException catch (e) {
       String message = '';
-      if (e.code == 'weak-password') {
-        message = 'Senha muito fraca.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'Email já cadastrado.';
-      } else {
-        message = e.message ?? 'Erro desconhecido.';
+      switch (e.code) {
+        case 'weak-password':
+          message = 'Senha muito fraca. Mínimo 6 caracteres.';
+          break;
+        case 'email-already-in-use':
+          message = 'Este email já está registado.';
+          break;
+        case 'invalid-email':
+          message = 'Email inválido.';
+          break;
+        default:
+          message = e.message ?? 'Erro desconhecido.';
       }
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(message)));
