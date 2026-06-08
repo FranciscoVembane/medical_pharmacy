@@ -10,6 +10,7 @@ import 'login_page.dart';
 import 'medicamentos_page.dart';
 import 'beneficiarios_page.dart';
 import 'tarefas_page.dart';
+import 'dashboard_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -260,6 +261,17 @@ class _HomePageState extends State<HomePage> {
                           context,
                           MaterialPageRoute(
                               builder: (_) => const TarefasPage())),
+                    ),
+                  if (userTipo == 'admin')
+                    _menuItem(
+                      icon: Icons.bar_chart,
+                      label: 'Dashboard',
+                      sub: 'Estatísticas e balanço',
+                      color: const Color(0xFF9B59B6),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DashboardPage())),
                     ),
                   if (userTipo == 'admin')
                     _menuItem(
